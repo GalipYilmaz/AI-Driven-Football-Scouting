@@ -8,8 +8,8 @@ Used EA FC24 dataset.
 
 * **AI Matchmaking:** Uses KNN (K-Nearest Neighbors) to find the most similar players based on normalized performance metrics.
 * **Dynamic Filtering:** Filter results by **League, Position, Budget, Age,** and **Overall/Potential** ratings.
-* **Dual-Radar Analysis:** Compare the target player and recommendations side-by-side in a single, overlapping neon radar chart.
-* **Interactive Comparison:** Head-to-head bar chart analysis for specific attributes (Pace, Shooting, Passing, etc.) with auto-centering labels.
+* **Dual-Radar Analysis:** Compare the target player and recommendations side-by-side in a single, overlapping radar chart.
+* **Interactive Comparison:** Head-to-head bar chart analysis for specific attributes (Pace, Shooting, Passing, etc.)
 * **SoFIFA Integration:** Quick access to detailed player profiles via direct links.
 * **Pagination & Sorting:** Clean result management with alphabetical or similarity-based sorting.
 
