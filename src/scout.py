@@ -83,7 +83,8 @@ class ScoutEngine:
 
         # Create a new DataFrame with the results
         results = self.df.loc[similar_indices][
-            ['short_name', 'age', 'overall', 'potential', 'value_eur', 'wage_eur', 'league_name']
+            ['short_name', 'age', 'overall', 'potential', 'value_eur',
+             'wage_eur', 'club_name', 'player_url', 'team_url']
         ].copy()
 
         # Add the 'distance_score' column
