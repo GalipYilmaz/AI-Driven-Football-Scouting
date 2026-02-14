@@ -25,7 +25,7 @@ Used EA FC24 dataset.
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/rhymasell/AI-Driven-Football-Scouting.git](https://github.com/rhymasell/AI-Driven-Football-Scouting.git)
+   git clone https://github.com/GalipYilmaz/AI-Driven-Football-Scouting
    cd AI-Driven-Football-Scouting
 
 2. Create a virtual environment and activate it:
