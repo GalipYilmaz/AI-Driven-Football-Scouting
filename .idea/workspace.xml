@@ -5,10 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3372bc0f-f01f-466a-851e-019aefdead95" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data/cleaned_players.csv" beforeDir="false" afterPath="$PROJECT_DIR$/data/cleaned_players.csv" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/notebooks/data_cleaning.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/notebooks/data_cleaning.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/scout.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/scout.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -92,7 +91,7 @@
       <option name="presentableId" value="Default" />
       <updated>1771072349109</updated>
       <workItem from="1771072350165" duration="12943000" />
-      <workItem from="1771087097324" duration="1319000" />
+      <workItem from="1771087097324" duration="6568000" />
     </task>
     <servers />
   </component>

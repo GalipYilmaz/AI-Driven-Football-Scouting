@@ -3,181 +3,273 @@ import pandas as pd
 import plotly.graph_objects as go
 from scout import ScoutEngine
 
+#  Streamlit Page Configuration
+st.set_page_config(page_title="AI Pro Scout 2026", page_icon="⚽", layout="wide")
 
-# 1. Page Configuration
-st.set_page_config(
-    page_title="AI Pro Scout",
-    page_icon="⚽",
-    layout="wide"
-)
-
-# 2. Custom CSS for UI Enhancement
+# Custom CSS
 st.markdown("""
     <style>
-    .main { background-color: #f8f9fa; }
-    .stButton>button { border-radius: 8px; font-weight: bold; }
+    .stApp { background-color: #0e1117; color: #ffffff; }
+    hr { margin: 1em 0px; border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important; }
     .player-card {
-        padding: 1.5rem;
-        border-radius: 12px;
-        border: 1px solid #e1e4e8;
-        background-color: white;
-        margin-bottom: 1rem;
+        padding: 1rem;
+        border-radius: 10px;
+        background-color: #1e2227;
+        border-left: 5px solid #00ff41; 
+        margin-bottom: 0.5rem;
+    }
+    section[data-testid="stSidebar"] { background-color: #161b22; }
+    .stButton>button {
+        background: linear-gradient(45deg, #00ff41, #00d4ff);
+        color: black;
+        border: none;
+        font-weight: bold;
     }
     </style>
     """, unsafe_allow_html=True)
 
 
-# 3. Load Engine (Cached)
+# Load Engine
 @st.cache_resource
 def load_engine():
-    return ScoutEngine(data_path="data/cleaned_players.csv")
+    engine = ScoutEngine(data_path="data/cleaned_players.csv")
+    if 'league_name' not in engine.df.columns and 'league_name_player' in engine.df.columns:
+        engine.df = engine.df.rename(columns={'league_name_player': 'league_name'})
+    return engine
 
-try:
-    engine = load_engine()
-except Exception as e:
-    st.error(f"Error loading data: {e}")
-    st.stop()
 
-# --- SIDEBAR: FILTERS & SORTING ---
-st.sidebar.header("🔍 Scouting Filters")
-max_price = st.sidebar.slider("Max Market Value (€ Million)", 0, 200, 50) * 1_000_000
-max_age = st.sidebar.slider("Max Player Age", 15, 45, 25)
+engine = load_engine()
 
-st.sidebar.divider()
-st.sidebar.header("📊 Result Settings")
-sort_metric = st.sidebar.selectbox(
-    "Sort Results By:",
-    options=["distance_score", "overall", "potential", "value_eur", "age"],
-    format_func=lambda x: x.replace('_', ' ').title()
-)
-sort_order = st.sidebar.radio("Order:", ["Ascending", "Descending"])
+# --- SIDEBAR: SCOUTING FILTERS ---
+with st.sidebar.form("filter_form"):
+    st.header("⚡ Scouting Filters")
 
-# --- HEADER ---
-st.title("⚽ AI-Driven Pro Scouting Platform")
-st.markdown("Advanced player similarity engine using ML-based KNN algorithms.")
+    max_price = st.slider("Max Budget (€M)", 0, 200, 60) * 1_000_000
+    max_age = st.slider("Max Age", 15, 45, 26)
+    min_overall = st.number_input("Min Overall Rating", 50, 99, 70)
+    min_potential = st.number_input("Min Potential Rating", 50, 99, 70)
 
-# --- PLAYER SEARCH (Dropdown with Club Info) ---
-player_display_options = [
-    f"{row['short_name']} ({row['club_name']})"
-    for _, row in engine.df.iterrows()
-]
+    # Position Filter (Multi-select)
+    all_positions = sorted(list(
+        set([pos.strip() for sublist in engine.df['player_positions'].fillna('').str.split(',') for pos in sublist])))
+    selected_positions = st.multiselect("Positions", options=all_positions)
 
-selected_display = st.selectbox(
-    "Select Target Player:",
-    options=player_display_options,
-    index=None,
-    placeholder="Start typing (e.g., Barış Alper Yılmaz, L. Torreira)..."
-)
+    # League Filter
+    all_leagues = sorted(engine.df['league_name'].dropna().unique().tolist())
+    target_league = st.selectbox("League", options=[None] + all_leagues,
+                                 format_func=lambda x: "All Leagues" if x is None else x)
 
-# --- MAIN LOGIC ---
+    st.divider()
+    st.header("📊 Sort Settings")
+
+    sort_metric = st.selectbox(
+        "Sort By",
+        options=["distance_score", "overall", "potential", "value_eur", "age", "short_name"],
+        format_func=lambda x: {
+            "distance_score": "Similarity (AI Match)",
+            "overall": "Current Ability",
+            "potential": "Future Potential",
+            "value_eur": "Market Value",
+            "age": "Age",
+            "short_name": "Name (A-Z)"
+        }[x]
+    )
+    sort_order = st.sidebar.radio("Order", ["Ascending", "Descending"], index=0)
+
+    submit_button = st.form_submit_button(label='🚀 Apply Filters')
+
+# Update page number to 0 when filters are applied
+if submit_button:
+    st.session_state.page = 0
+
+# --- MAIN INTERFACE ---
+st.title("⚽ AI PRO SCOUTING DASHBOARD")
+
+player_list = (engine.df['short_name'] + " (" + engine.df['club_name'].fillna('No Club') + ")").tolist()
+selected_display = st.selectbox("Search Target Player:", options=player_list, index=None)
+
 if selected_display:
     target_name = selected_display.split(" (")[0]
 
-    # Increase n_players to allow better pagination/filtering
-    results = engine.find_similar_players(
-        player_name=target_name,
-        n_players=20,
-        max_price=max_price,
-        max_age=max_age
-    )
+    # --- TARGET PLAYER SECTION ---
+    # Fetching target player data from the dataset
+    target_data = engine.df[engine.df['short_name'] == target_name].iloc[0]
+    stats_labels = ['Pace', 'Shoot', 'Pass', 'Drib', 'Def', 'Phys']
+    target_values = [target_data['pace'], target_data['shooting'], target_data['passing'],
+                     target_data['dribbling'], target_data['defending'], target_data['physic']]
 
-    if isinstance(results, str):
-        st.warning(results)
-    else:
-        # Apply Sorting
-        results = results.sort_values(
-            by=sort_metric,
-            ascending=(sort_order == "Ascending")
-        )
+    st.subheader(f"🎯 Target Analysis: {target_name}")
 
-        # --- PAGINATION ---
+    # Displaying target player attributes
+    cols = st.columns(6)
+    for i, label in enumerate(stats_labels):
+        # Inside the loop for stats_labels in Target Player Section
+        with cols[i]:
+            fig_stat = go.Figure(go.Bar(
+                x=[label],
+                y=[target_values[i]],
+                marker_color='#00d4ff',
+                text=[target_values[i]],
+                textposition='inside',
+                insidetextanchor='middle',
+                textfont=dict(size=18, color='black', family='Arial Black')
+            ))
+
+            fig_stat.update_layout(
+                height=150,
+                margin=dict(l=5, r=5, t=5, b=5),
+                xaxis=dict(tickfont=dict(size=14, color='white'), fixedrange=True),
+                yaxis=dict(range=[0, 100], visible=False),
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)'
+            )
+            st.plotly_chart(fig_stat, use_container_width=True, key=f"target_{label}", config={'displayModeBar': False})
+
+    st.divider()
+
+    # --- SIMILAR PLAYERS LIST ---
+    results = engine.find_similar_players(target_name, n_players=20, max_price=max_price, max_age=max_age,
+                                          league=target_league)
+
+    if not isinstance(results, str):
+        # Filtering and Sorting
+        if selected_positions:
+            results = results[results['player_positions'].apply(
+                lambda x: any(p.strip() in selected_positions for p in str(x).split(',')))]
+        results = results[(results['overall'] >= min_overall) & (results['potential'] >= min_potential)]
+        results = results.sort_values(by=sort_metric, ascending=(sort_order == "Ascending"))
+
+        # Pagination logic
         items_per_page = 5
-        if 'page_num' not in st.session_state:
-            st.session_state.page_num = 0
+        if 'page' not in st.session_state: st.session_state.page = 0
+        start_idx = st.session_state.page * items_per_page
+        current_batch = results.iloc[start_idx:start_idx + items_per_page]
 
-        max_pages = (len(results) // items_per_page)
+        st.write(f"### 🔎 Recommended Alternatives")
 
-        col_prev, col_page, col_next = st.columns([1, 2, 1])
-        if col_prev.button("⬅️ Previous") and st.session_state.page_num > 0:
-            st.session_state.page_num -= 1
-        if col_next.button("Next ➡️") and st.session_state.page_num < max_pages:
-            st.session_state.page_num += 1
+        total_results = len(results)
+        total_pages = (total_results // items_per_page) + (1 if total_results % items_per_page > 0 else 0)
+        current_page = st.session_state.page + 1
 
-        start_idx = st.session_state.page_num * items_per_page
-        end_idx = start_idx + items_per_page
-        current_page_data = results.iloc[start_idx:end_idx]
+        # Info Box
+        st.markdown(f"""
+                    <div style="background-color: #1e2227; padding: 10px; border-radius: 5px; border-left: 3px solid #00d4ff; margin-bottom: 20px;">
+                        <span style="color: #00d4ff; font-weight: bold;">{total_results}</span> player found| 
+                        Page <span style="color: #00ff41; font-weight: bold;">{current_page}</span> / {total_pages}
+                    </div>
+                """, unsafe_allow_html=True)
 
-        st.info(f"Page {st.session_state.page_num + 1} of {max_pages + 1}")
+        for _, player in current_batch.iterrows():
+            st.markdown(f"""
+            <div class="player-card">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="font-size: 20px; font-weight: bold; color: #00ff41;">{player['short_name']}</span>
+                    <span style="color: #8b949e; font-size: 14px;">{player.get('player_positions', 'N/A')} | {player.get('club_name', 'No Club')}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # --- DISPLAY PLAYER CARDS ---
-        for _, player in current_page_data.iterrows():
-            with st.container():
-                st.markdown('<div class="player-card">', unsafe_allow_html=True)
-                c1, c2, c3, c4 = st.columns([1, 2, 2, 3])
+            c1, c2, c3 = st.columns([1, 2, 2])
 
-                with c1:
-                    try:
-                        p_url = player['player_url']
+            with c1:
+                # Direct link to player's profile
+                st.write("🔗 **SoFIFA**")
+                profile_url = f"https://sofifa.com{player['player_url']}"
+                st.link_button("View Profile", profile_url)
 
-                        p_id = "".join(filter(str.isdigit, p_url.split('/')[2]))
+            with c2:
+                # Key stats
+                st.markdown(
+                    f"**Value:** <span style='font-size: 18px; color: #00d4ff;'>€{player['value_eur'] / 1000000:.1f}M</span>",
+                    unsafe_allow_html=True)
+                st.markdown(
+                    f"**Potential:** <span style='font-size: 18px; color: #00ff41;'>{player['potential']}</span>",
+                    unsafe_allow_html=True)
+                st.progress(player['overall'] / 100, text=f"Overall: {player['overall']}")
 
-                        p_id_str = str(p_id).zfill(6)
-                        img_url = f"https://cdn.sofifa.net/players/{p_id_str[:3]}/{p_id_str[3:]}/24_120.png"
+            with c3:
+                # --- DUAL RADAR CHART (Target vs Alternative) ---
+                p_data = engine.df[engine.df['short_name'] == player['short_name']].iloc[0]
+                p_values = [p_data['pace'], p_data['shooting'], p_data['passing'], p_data['dribbling'],
+                            p_data['defending'], p_data['physic']]
 
-                        st.image(img_url, width=110, use_container_width=False)
+                fig_dual = go.Figure()
 
-                        st.link_button("🔗 Profil", f"https://sofifa.com{p_url}")
-                    except:
-                        st.error("📷 Image Error")
+                # Target Player Trace (Neon Cyan)
+                fig_dual.add_trace(go.Scatterpolar(
+                    r=target_values, theta=stats_labels, fill='toself',
+                    name=target_name, fillcolor='rgba(0, 212, 255, 0.2)', line=dict(color='#00d4ff', width=1)
+                ))
 
-                with c2:
-                    profile_url = f"https://sofifa.com{player['player_url']}"
-                    st.markdown(f"### [{player['short_name']}]({profile_url})")
+                # Alternative Player Trace (Neon Green)
+                fig_dual.add_trace(go.Scatterpolar(
+                    r=p_values, theta=stats_labels, fill='toself',
+                    name=player['short_name'], fillcolor='rgba(0, 255, 65, 0.2)', line=dict(color='#00ff41', width=1)
+                ))
 
-                    st.caption(f"**Club:** {player['club_name']}")
-                    st.caption(f"**League:** {player.get('league_name', 'Unknown League')}")
-                with c3:  # Technical Stats
-                    st.write(f"⭐ **Overall:** {player['overall']}")
-                    st.write(f"📈 **Potential:** {player['potential']}")
-                    st.write(f"🎂 **Age:** {player['age']}")
-                    st.write(f"💰 **Value:** €{player['value_eur'] / 1_000_000:.1f}M")
+                fig_dual.update_layout(
+                    polar=dict(
+                        bgcolor="#1e1e1e",
+                        radialaxis=dict(visible=False, range=[0, 100]),
+                        angularaxis=dict(gridcolor="#444", tickfont=dict(size=10))
+                    ),
+                    showlegend=False, height=180, margin=dict(l=30, r=30, t=10, b=10), paper_bgcolor='rgba(0,0,0,0)'
+                )
+                st.plotly_chart(fig_dual, use_container_width=True, key=f"dual_{player['player_id']}")
+            st.divider()
 
-                with c4:  # Individual Radar Chart
-                    stats_labels = ['Pace', 'Shoot', 'Pass', 'Drib', 'Def', 'Phys']
-                    # Fetching original stats for visualization
-                    p_data = engine.df[engine.df['short_name'] == player['short_name']].iloc[0]
-                    stats_values = [p_data['pace'], p_data['shooting'], p_data['passing'],
-                                    p_data['dribbling'], p_data['defending'], p_data['physic']]
-
-                    fig = go.Figure(data=go.Scatterpolar(
-                        r=stats_values, theta=stats_labels, fill='toself',
-                        line_color='#007bff'
-                    ))
-                    fig.update_layout(
-                        polar=dict(radialaxis=dict(visible=True, range=[0, 100])),
-                        showlegend=False, height=200, margin=dict(l=30, r=30, t=20, b=20)
-                    )
-                    st.plotly_chart(fig, use_container_width=True, key=f"radar_{player['short_name']}")
-
-                st.markdown('</div>', unsafe_allow_html=True)
-
-        # --- ATTRIBUTE COMPARISON CHART (GROUPED BAR) ---
+        # --- HEAD-TO-HEAD COMPARISON SECTION ---
         st.divider()
-        st.header("⚔️ Top 5 Match Analysis")
-        compare_attr = st.selectbox(
-            "Select Attribute to Compare Across Top 5:",
-            ['pace', 'shooting', 'passing', 'dribbling', 'defending', 'physic']
+        st.header("⚔️ Final Attribute Comparison")
+
+        # Ensure these match the exact column names in engine.df (e.g., 'pace' vs 'norm_pace')
+        comp_attr = st.selectbox(
+            "Select Attribute:",
+            options=['pace', 'shooting', 'passing', 'dribbling', 'defending', 'physic'],
+            format_func=lambda x: x.title()
         )
 
-        top_5 = results.head(5)
-        bar_fig = go.Figure()
+        if not results.empty:
+            top_5_matches = results.head(5)
+            comp_list = [target_name] + top_5_matches['short_name'].tolist()
 
-        for _, row in top_5.iterrows():
-            val = engine.df[engine.df['short_name'] == row['short_name']][compare_attr].values[0]
-            bar_fig.add_trace(go.Bar(name=row['short_name'], x=[compare_attr.title()], y=[val]))
+            # Using .get() or checking columns to prevent the KeyError crash
+            comp_values = []
+            for name in comp_list:
+                try:
+                    val = engine.df[engine.df['short_name'] == name][comp_attr].values[0]
+                    comp_values.append(val)
+                except KeyError:
+                    # Fallback if the column name is slightly different in your CSV
+                    st.error(f"Column '{comp_attr}' not found in data.")
+                    st.stop()
 
-        st.plotly_chart(bar_fig, use_container_width=True)
+            colors = ['#00d4ff'] + ['#00ff41'] * len(top_5_matches)
 
-# --- FOOTER ---
-st.divider()
-st.caption(f"Rhymasell AI Scouting Platform | Powered by Machine Learning | {engine.df.shape[0]} Players Indexed")
+            fig_comp = go.Figure(data=[go.Bar(
+                x=comp_list,
+                y=comp_values,
+                marker_color=colors,
+                text=comp_values,
+                textfont=dict(size=16, color='black'),
+                textposition='inside',
+                insidetextanchor='middle'
+            )])
+
+            fig_comp.update_layout(
+                template="plotly_dark",
+                xaxis=dict(tickangle=0, tickfont=dict(size=14)),
+                yaxis=dict(visible=False, range=[0, 100]),
+                height=400,
+                paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                uniformtext=dict(mode='hide', minsize=12)
+            )
+            st.plotly_chart(fig_comp, use_container_width=True)
+
+# Sidebar Navigation
+prev, nxt = st.sidebar.columns(2)
+if prev.button("⬅️ Previous"): st.session_state.page = max(0, st.session_state.page - 1)
+if nxt.button("Next ➡️"):
+    if 'results' in locals() and (st.session_state.page + 1) * 5 < len(results):
+        st.session_state.page += 1
