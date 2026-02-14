@@ -124,7 +124,7 @@ if selected_display:
                 paper_bgcolor='rgba(0,0,0,0)',
                 plot_bgcolor='rgba(0,0,0,0)'
             )
-            st.plotly_chart(fig_stat, use_container_width=True, key=f"target_{label}", config={'displayModeBar': False})
+            st.plotly_chart(fig_stat, use_container_width=True, key=f"target_{label}", config={'staticPlot': True, 'displayModeBar': False})
 
     st.divider()
 
@@ -217,7 +217,7 @@ if selected_display:
                     ),
                     showlegend=False, height=180, margin=dict(l=30, r=30, t=10, b=10), paper_bgcolor='rgba(0,0,0,0)'
                 )
-                st.plotly_chart(fig_dual, use_container_width=True, key=f"dual_{player['player_id']}")
+                st.plotly_chart(fig_dual, use_container_width=True, key=f"dual_{player['player_id']}", config={'displayModeBar': False, 'staticPlot': True})
             st.divider()
 
         # --- HEAD-TO-HEAD COMPARISON SECTION ---
@@ -268,8 +268,8 @@ if selected_display:
                 plot_bgcolor='rgba(0,0,0,0)',
                 uniformtext=dict(mode='hide', minsize=12)
             )
-            st.plotly_chart(fig_comp, use_container_width=True, config={'displayModeBar': False})
-    
+            st.plotly_chart(fig_comp, use_container_width=True, config={'displayModeBar': False, 'staticPlot': True})
+
 # Sidebar Navigation
 prev, nxt = st.sidebar.columns(2)
 if prev.button("⬅️ Previous"): st.session_state.page = max(0, st.session_state.page - 1)
