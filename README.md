@@ -1,4 +1,4 @@
-# ⚽ AI-Driven Football Scouting Dashboard
+# ⚽ PRO-SCOUT AI | AI-Driven Football Scouting
 
 An advanced, AI-powered football scouting tool designed to find player alternatives using Machine Learning. This tool compares players using K-Nearest Neighbors (KNN) and visualizes technical attributes with dual-radar charts.
 Used EA FC24 dataset.
@@ -48,3 +48,4 @@ The engine calculates the  Euclidean distance between players using normalized f
 
 By applying a dynamic KNN model on a pre-filtered candidate pool, the system provides real-time recommendations that fit specific tactical and budgetary constraints.
 
+Developed by Galip Yılmaz
