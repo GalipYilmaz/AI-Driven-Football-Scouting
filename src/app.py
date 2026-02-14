@@ -116,6 +116,7 @@ if selected_display:
             ))
 
             fig_stat.update_layout(
+                dragmode=False,
                 height=150,
                 margin=dict(l=5, r=5, t=5, b=5),
                 xaxis=dict(tickfont=dict(size=14, color='white'), fixedrange=True),
@@ -208,6 +209,7 @@ if selected_display:
                 ))
 
                 fig_dual.update_layout(
+                    dragmode=False,
                     polar=dict(
                         bgcolor="#1e1e1e",
                         radialaxis=dict(visible=False, range=[0, 100]),
@@ -257,6 +259,7 @@ if selected_display:
             )])
 
             fig_comp.update_layout(
+                dragmode=False,
                 template="plotly_dark",
                 xaxis=dict(tickangle=0, tickfont=dict(size=14)),
                 yaxis=dict(visible=False, range=[0, 100]),
@@ -265,8 +268,8 @@ if selected_display:
                 plot_bgcolor='rgba(0,0,0,0)',
                 uniformtext=dict(mode='hide', minsize=12)
             )
-            st.plotly_chart(fig_comp, use_container_width=True)
-
+            st.plotly_chart(fig_comp, use_container_width=True, config={'displayModeBar': False})
+    
 # Sidebar Navigation
 prev, nxt = st.sidebar.columns(2)
 if prev.button("⬅️ Previous"): st.session_state.page = max(0, st.session_state.page - 1)
