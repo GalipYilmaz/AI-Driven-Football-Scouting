@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from scout import ScoutEngine
 
 #  Streamlit Page Configuration
-st.set_page_config(page_title="AI Pro Scout 2026", page_icon="⚽", layout="wide")
+st.set_page_config(page_title="PRO-SCOUT AI | Intelligence for the Modern Scout", page_icon="⚽", layout="wide")
 
 # Custom CSS
 st.markdown("""
