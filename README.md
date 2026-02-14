@@ -45,5 +45,6 @@ Used EA FC24 dataset.
 The engine calculates the  Euclidean distance between players using normalized features:
 
 * **Pace, Shooting, Passing, Dribbling, Defending, Physical**
+
 By applying a dynamic KNN model on a pre-filtered candidate pool, the system provides real-time recommendations that fit specific tactical and budgetary constraints.
 
